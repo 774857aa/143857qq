@@ -1,0 +1,123 @@
+local Button =
+    Tab:Button(
+    {
+        Title = T("最强战场"),
+        Desc = T("加载最强战场菜单"),
+        Locked = false,
+        Callback = function()
+            local Players = game:GetService("Players")
+            local LocalPlayer = Players.LocalPlayer
+            local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+            local HumanoidRootPart = Character:WaitForChild("HumanoidRootPart")
+            local StarterGui = game:GetService("StarterGui")
+            local RunService = game:GetService("RunService")
+            local TweenService = game:GetService("TweenService")
+            local UserInputService = game:GetService("UserInputService")
+            local VirtualInputManager = game:GetService("VirtualInputManager")
+            local ReplicatedStorage = game:GetService("ReplicatedStorage")
+            local Camera = game:GetService('Workspace').CurrentCamera
+
+            local RunService = game:GetService("RunService")
+            local Players = game:GetService("Players")
+            local LocalPlayer = Players.LocalPlayer
+            local Humanoid
+            local HumanoidRootPart
+
+            local function SafeDebugPrint(message)
+                print("[DEBUG] " .. message)
+            end
+
+            local function InitializeHumanoid()
+                local character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+                if character then
+                    Humanoid = character:FindFirstChild("Humanoid")
+                    if Humanoid then
+                        HumanoidRootPart = character:FindFirstChild("HumanoidRootPart")
+                        if not HumanoidRootPart then
+                            SafeDebugPrint("HumanoidRootPart not found for " .. LocalPlayer.Name)
+                        else
+                            SafeDebugPrint("HumanoidRootPart initialized for " .. LocalPlayer.Name)
+                        end
+                    else
+                        SafeDebugPrint("Humanoid not found for " .. LocalPlayer.Name)
+                    end
+                end
+            end
+
+            if LocalPlayer.Character then
+                InitializeHumanoid()
+            end
+
+            LocalPlayer.CharacterAdded:Connect(InitializeHumanoid)
+
+            local kenConfiguration = {
+                Main = {
+                    Combat = {
+                        AttackAura = false,
+                        AutoParry = false
+                    },
+                    Farm = {
+                        KillFarm = false,
+                        AutoUltimate = true
+                    }
+                },
+                Player = {
+                    Character = {
+                        OverwriteProperties = false,
+                        WalkSpeed = 50,
+                        JumpPower = 50
+                    }
+                }
+            }
+
+            local Functions = {}
+
+            function Functions.BestTarget(MaxDistance)
+                MaxDistance = MaxDistance or math.huge
+                local Target = nil
+                local MinKills = math.huge
+
+                for _, v in pairs(Players:GetPlayers()) do
+                    if v ~= LocalPlayer and v.Character and v.Character:FindFirstChild("Humanoid") and v.Character.Humanoid.Health > 0 then
+                        local rootPart = v.Character:FindFirstChild("HumanoidRootPart")
+                        if rootPart then
+                            local distance = (LocalPlayer.Character.HumanoidRootPart.Position - rootPart.Position).Magnitude
+                            local kills = v:GetAttribute("Kills") or 0
+
+                            if distance < MaxDistance and kills < MinKills then
+                                Target = v
+                                MaxDistance = distance
+                                MinKills = kills
+                            end
+                        end
+                    end
+                end
+
+                SafeDebugPrint("Best target found: " .. (Target and Target.Name or "None"))
+                return Target
+            end
+
+            function Functions.UseAbility(Ability)
+                if not LocalPlayer.Character then
+                    return
+                end
+                local Tool = LocalPlayer.Backpack:FindFirstChild(Ability)
+                if Tool then
+                    SafeDebugPrint("Using ability: " .. Ability)
+                    LocalPlayer.Character.Communicate:FireServer(
+                        {
+                            Tool = Tool,
+                            Goal = "Console Move",
+                            ToolName = tostring(Ability)
+                        }
+                    )
+                else
+                    SafeDebugPrint("Ability not found: " .. Ability)
+                end
+            end
+
+            function Functions.RandomAbility()
+                if not LocalPlayer.PlayerGui:FindFirstChild("Hotbar") then
+                    return nil
+                end
+   
